@@ -13,21 +13,6 @@ class Brand(models.Model):
         return self.name
 
 
-class Branch(models.Model):
-    name = models.CharField(max_length=100, verbose_name="اسم الفرع")
-    city = models.CharField(max_length=100, verbose_name="المدينة")
-    address = models.TextField(blank=True, verbose_name="العنوان")
-    phone = models.CharField(max_length=20, blank=True, verbose_name="الهاتف")
-    whatsapp = models.CharField(max_length=20, blank=True, verbose_name="واتساب")
-
-    class Meta:
-        verbose_name = "فرع"
-        verbose_name_plural = "الفروع"
-        ordering = ["city", "name"]
-
-    def __str__(self):
-        return f"{self.name} — {self.city}"
-
 
 class Car(models.Model):
     class CarType(models.TextChoices):
@@ -76,7 +61,7 @@ class Car(models.Model):
     engine_size = models.CharField(max_length=20, blank=True, verbose_name="حجم المحرك")
     exterior_color = models.CharField(max_length=50, blank=True, verbose_name="اللون الخارجي")
     origin = models.CharField(max_length=15, choices=Origin.choices, blank=True, verbose_name="الوارد / المواصفات")
-    branch = models.ForeignKey(Branch, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="الفرع / المدينة")
+    city = models.CharField(max_length=100, blank=True, verbose_name="المدينة")
 
     # Shared
     description = models.TextField(blank=True, verbose_name="وصف مختصر")
