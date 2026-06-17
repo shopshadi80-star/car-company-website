@@ -38,6 +38,10 @@
                        href="{% url 'cars:used_list' %}">السيارات المستعملة</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}"
+                       href="{% url 'leads:about' %}">من نحن</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}"
                        href="{% url 'leads:contact' %}">تواصل معنا</a>
                 </li>
@@ -77,7 +81,8 @@
                     <li class="mb-1"><a href="{% url 'home' %}" class="text-white-50 text-decoration-none">الرئيسية</a></li>
                     <li class="mb-1"><a href="{% url 'cars:new_list' %}" class="text-white-50 text-decoration-none">السيارات الجديدة</a></li>
                     <li class="mb-1"><a href="{% url 'cars:used_list' %}" class="text-white-50 text-decoration-none">السيارات المستعملة</a></li>
-                    <li><a href="/contact/" class="text-white-50 text-decoration-none">تواصل معنا</a></li>
+                    <li class="mb-1"><a href="{% url 'leads:about' %}" class="text-white-50 text-decoration-none">من نحن</a></li>
+                    <li><a href="{% url 'leads:contact' %}" class="text-white-50 text-decoration-none">تواصل معنا</a></li>
                 </ul>
             </div>
             <div class="col-md-4">
@@ -95,7 +100,7 @@
                 &copy; {% now "Y" %} معرض السيارات. جميع الحقوق محفوظة.
             </div>
             <div class="col-md-6 text-md-start small opacity-75">
-                <a href="/privacy/" class="text-white-50 text-decoration-none">سياسة الخصوصية</a>
+                <a href="{% url 'leads:privacy' %}" class="text-white-50 text-decoration-none">سياسة الخصوصية</a>
             </div>
         </div>
     </div>

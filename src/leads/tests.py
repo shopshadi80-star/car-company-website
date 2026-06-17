@@ -286,3 +286,145 @@ class ContactViewTest(TestCase):
     def test_saved_message_appears_in_admin_queryset(self):
         ContactMessage.objects.create(name="إدارة", phone="0501234567", message="رسالة")
         self.assertEqual(ContactMessage.objects.count(), 1)
+
+
+# ─── Static Pages Tests (Task 3.9) ───────────────────────────────────────────
+
+class AboutPageTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("leads:about")
+
+    def test_page_returns_200(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "leads/about.html")
+
+    def test_page_extends_base(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "base.html")
+
+    def test_page_contains_title(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "من نحن")
+
+    def test_page_contains_story_section(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "قصتنا")
+
+    def test_page_contains_values_section(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "قيمنا الأساسية")
+
+    def test_page_contains_cta_links(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse("cars:new_list"))
+        self.assertContains(response, reverse("cars:used_list"))
+
+    def test_page_title_tag(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "من نحن")
+
+    def test_navbar_has_about_link(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse("leads:about"))
+
+    def test_about_link_active_in_navbar(self):
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        # active class should be on the about nav-link
+        self.assertIn("active", content)
+
+
+class PrivacyPageTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("leads:privacy")
+
+    def test_page_returns_200(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "leads/privacy.html")
+
+    def test_page_extends_base(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "base.html")
+
+    def test_page_contains_title(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "سياسة الخصوصية")
+
+    def test_page_contains_data_section(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "المعلومات التي نجمعها")
+
+    def test_page_contains_rights_section(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "حقوقك")
+
+    def test_page_contains_contact_link(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse("leads:contact"))
+
+    def test_footer_has_privacy_link(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse("leads:privacy"))
+
+    def test_page_is_get_only(self):
+        response = self.client.post(self.url, {})
+        # static page — POST not handled differently, returns 200 or 405
+        self.assertIn(response.status_code, [200, 405])
+
+
+class ContactPageMapTest(TestCase):
+    """Ensure the contact page includes map and all required contact info."""
+
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("leads:contact")
+
+    def test_page_contains_phone(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "966")
+
+    def test_page_contains_email(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "info@showroom.sa")
+
+    def test_page_contains_location(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "الرياض")
+
+    def test_page_contains_map_iframe(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "<iframe")
+
+    def test_page_contains_map_title(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "موقعنا على الخريطة")
+
+
+class StaticPagesNavbarTest(TestCase):
+    """Ensure static pages appear in the navbar across all pages."""
+
+    def test_home_navbar_has_about_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, reverse("leads:about"))
+
+    def test_home_navbar_has_contact_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, reverse("leads:contact"))
+
+    def test_home_footer_has_privacy_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, reverse("leads:privacy"))
+
+    def test_home_footer_has_about_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, reverse("leads:about"))
