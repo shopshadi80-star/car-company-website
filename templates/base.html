@@ -18,7 +18,7 @@
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="/">🚗 معرض السيارات</a>
+        <a class="navbar-brand fw-bold" href="{% url 'home' %}">🚗 معرض السيارات</a>
         <button class="navbar-toggler" type="button"
                 data-bs-toggle="collapse" data-bs-target="#mainNav"
                 aria-controls="mainNav" aria-expanded="false" aria-label="فتح القائمة">
@@ -27,13 +27,13 @@
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" href="/">الرئيسية</a>
+                    <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}">الرئيسية</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/cars/new/">السيارات الجديدة</a>
+                    <a class="nav-link {% if '/cars/new/' in request.path %}active{% endif %}" href="{% url 'cars:new_list' %}">السيارات الجديدة</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/cars/used/">السيارات المستعملة</a>
+                    <a class="nav-link {% if '/cars/used/' in request.path %}active{% endif %}" href="{% url 'cars:used_list' %}">السيارات المستعملة</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/contact/">تواصل معنا</a>
@@ -70,9 +70,9 @@
             </div>
             <div class="col-md-6 text-md-end">
                 <ul class="list-unstyled mb-0">
-                    <li><a href="/" class="text-muted text-decoration-none">الرئيسية</a></li>
-                    <li><a href="/cars/new/" class="text-muted text-decoration-none">السيارات الجديدة</a></li>
-                    <li><a href="/cars/used/" class="text-muted text-decoration-none">السيارات المستعملة</a></li>
+                    <li><a href="{% url 'home' %}" class="text-muted text-decoration-none">الرئيسية</a></li>
+                    <li><a href="{% url 'cars:new_list' %}" class="text-muted text-decoration-none">السيارات الجديدة</a></li>
+                    <li><a href="{% url 'cars:used_list' %}" class="text-muted text-decoration-none">السيارات المستعملة</a></li>
                     <li><a href="/contact/" class="text-muted text-decoration-none">تواصل معنا</a></li>
                 </ul>
             </div>

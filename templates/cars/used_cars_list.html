@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}السيارات المستعملة — معرض السيارات{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card { background: #f8f9fa; border-radius: 12px; }
+    .car-card { transition: transform .15s, box-shadow .15s; border-radius: 12px; overflow: hidden; }
+    .car-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+    .car-card img { height: 200px; object-fit: cover; width: 100%; }
+    .car-card .no-image { height: 200px; background: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+    .specs-row { font-size: .82rem; color: #495057; }
+    .specs-row span { display: inline-flex; align-items: center; gap: 3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-0">السيارات المستعملة</h1>
+        <p class="text-muted mb-0 mt-1">سيارات موثوقة بأسعار تنافسية</p>
+    </div>
+    <span class="badge bg-warning text-dark fs-6 px-3 py-2">{{ cars|length }} سيارة</span>
+</div>
+
+<!-- Filters -->
+<div class="card filter-card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" id="filterForm">
+            <div class="row g-3 align-items-end">
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small">الماركة</label>
+                    <select name="brand" class="form-select form-select-sm">
+                        <option value="">كل الماركات</option>
+                        {% for brand in brands %}
+                        <option value="{{ brand.pk }}" {% if selected_brand == brand.pk|stringformat:"s" %}selected{% endif %}>{{ brand.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small">السنة</label>
+                    <select name="year" class="form-select form-select-sm">
+                        <option value="">كل السنوات</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if selected_year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small">المدينة</label>
+                    <select name="city" class="form-select form-select-sm">
+                        <option value="">كل المدن</option>
+                        {% for c in cities %}
+                        <option value="{{ c }}" {% if selected_city == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small">السعر من (ر.س)</label>
+                    <input type="number" name="price_min" class="form-control form-control-sm" placeholder="0" value="{{ price_min|default:'' }}" min="0">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small">السعر إلى (ر.س)</label>
+                    <input type="number" name="price_max" class="form-control form-control-sm" placeholder="غير محدد" value="{{ price_max|default:'' }}" min="0">
+                </div>
+
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-dark btn-sm flex-fill">
+                        تصفية
+                    </button>
+                    <a href="{% url 'cars:used_list' %}" class="btn btn-outline-secondary btn-sm flex-fill">
+                        إعادة ضبط
+                    </a>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results -->
+{% if cars %}
+<div class="row g-4">
+    {% for car in cars %}
+    <div class="col-sm-6 col-lg-4">
+        <div class="card car-card border-0 shadow-sm h-100">
+
+            {% with car.images.all as images %}
+            {% if images %}
+                <img src="{{ images.0.image.url }}" alt="{{ car.brand }} {{ car.model_name }}" loading="lazy">
+            {% else %}
+                <div class="no-image">🚗</div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="card-body d-flex flex-column">
+
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title fw-bold mb-0">{{ car.brand }} {{ car.model_name }}</h5>
+                    <span class="badge bg-secondary">{{ car.year }}</span>
+                </div>
+
+                {% if car.price %}
+                <p class="fw-bold text-success fs-5 mb-2">
+                    {{ car.price|floatformat:0 }} ر.س
+                </p>
+                {% else %}
+                <p class="text-muted small mb-2">السعر عند الطلب</p>
+                {% endif %}
+
+                <!-- Key Specs -->
+                <div class="specs-row d-flex flex-wrap gap-2 mb-3">
+                    {% if car.mileage_km %}
+                    <span class="badge bg-light text-dark border">🛣 {{ car.mileage_km|floatformat:0 }} كم</span>
+                    {% endif %}
+                    {% if car.transmission %}
+                    <span class="badge bg-light text-dark border">⚙️ {{ car.get_transmission_display }}</span>
+                    {% endif %}
+                    {% if car.fuel_type %}
+                    <span class="badge bg-light text-dark border">⛽ {{ car.get_fuel_type_display }}</span>
+                    {% endif %}
+                    {% if car.city %}
+                    <span class="badge bg-light text-dark border">📍 {{ car.city }}</span>
+                    {% endif %}
+                    {% if car.origin %}
+                    <span class="badge bg-light text-dark border">🌐 {{ car.get_origin_display }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="mt-auto">
+                    <a href="#" class="btn btn-dark w-100">التفاصيل</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="text-center py-5">
+    <div style="font-size:4rem">🔍</div>
+    <h4 class="mt-3 text-muted">لا توجد سيارات تطابق معايير البحث</h4>
+    <p class="text-muted">جرّب تغيير الفلاتر أو</p>
+    <a href="{% url 'cars:used_list' %}" class="btn btn-outline-dark">عرض كل السيارات المستعملة</a>
+</div>
+{% endif %}
+
+{% endblock %}
