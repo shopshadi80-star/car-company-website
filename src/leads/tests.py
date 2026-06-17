@@ -286,3 +286,86 @@ class ContactViewTest(TestCase):
     def test_saved_message_appears_in_admin_queryset(self):
         ContactMessage.objects.create(name="إدارة", phone="0501234567", message="رسالة")
         self.assertEqual(ContactMessage.objects.count(), 1)
+
+
+# ─── AJAX Modal Tests ─────────────────────────────────────────────────────────
+
+AJAX_HEADER = {"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
+
+
+class TestDriveAjaxTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        brand, _ = Brand.objects.get_or_create(name="تويوتا")
+        self.car = Car.objects.create(
+            brand=brand, car_type=Car.CarType.NEW, model_name="كورولا",
+            year=2024, status=Car.Status.AVAILABLE,
+        )
+        self.url = reverse("cars:car_detail", args=[self.car.pk])
+
+    def test_ajax_valid_returns_json_success(self):
+        response = self.client.post(
+            self.url,
+            {"name": "أحمد", "phone": "0501234567", "preferred_time": "", "note": ""},
+            **AJAX_HEADER,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["success"])
+        self.assertIn("message", data)
+        self.assertEqual(TestDriveRequest.objects.count(), 1)
+
+    def test_ajax_missing_name_returns_400_with_errors(self):
+        response = self.client.post(
+            self.url,
+            {"name": "", "phone": "0501234567"},
+            **AJAX_HEADER,
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data["success"])
+        self.assertIn("name", data["errors"])
+        self.assertEqual(TestDriveRequest.objects.count(), 0)
+
+    def test_ajax_missing_phone_returns_400_with_errors(self):
+        response = self.client.post(
+            self.url,
+            {"name": "أحمد", "phone": ""},
+            **AJAX_HEADER,
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn("phone", data["errors"])
+        self.assertEqual(TestDriveRequest.objects.count(), 0)
+
+
+class InspectionAjaxTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        brand, _ = Brand.objects.get_or_create(name="مرسيدس")
+        self.car = Car.objects.create(
+            brand=brand, car_type=Car.CarType.USED, model_name="E200",
+            year=2021, status=Car.Status.AVAILABLE,
+        )
+        self.url = reverse("cars:car_detail", args=[self.car.pk])
+
+    def test_ajax_valid_saves_and_returns_success(self):
+        response = self.client.post(
+            self.url,
+            {"name": "سارة", "phone": "0556667788", "preferred_time": "الثلاثاء", "note": ""},
+            **AJAX_HEADER,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.assertEqual(InspectionRequest.objects.count(), 1)
+
+    def test_ajax_both_fields_empty_returns_errors(self):
+        response = self.client.post(
+            self.url,
+            {"name": "", "phone": ""},
+            **AJAX_HEADER,
+        )
+        self.assertEqual(response.status_code, 400)
+        errors = response.json()["errors"]
+        self.assertIn("name", errors)
+        self.assertIn("phone", errors)

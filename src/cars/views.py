@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from django.http import JsonResponse
 
 from .models import Car, Brand
 from leads.forms import TestDriveForm, InspectionForm
@@ -92,14 +93,22 @@ def car_detail(request, pk):
         form_class = InspectionForm
         form_submitted_key = "inspection_sent"
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     if request.method == "POST":
         form = form_class(request.POST)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.car = car
             obj.save()
+            if is_ajax:
+                return JsonResponse({"success": True, "message": "تم إرسال طلبك بنجاح، سنتواصل معك قريباً."})
             messages.success(request, "تم إرسال طلبك بنجاح، سنتواصل معك قريباً.")
             return redirect("cars:car_detail", pk=pk)
+        else:
+            if is_ajax:
+                errors = {field: list(errs) for field, errs in form.errors.items()}
+                return JsonResponse({"success": False, "errors": errors}, status=400)
     else:
         form = form_class()
 

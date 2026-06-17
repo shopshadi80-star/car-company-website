@@ -188,7 +188,7 @@
 
                 <hr>
 
-                <!-- Success Message -->
+                <!-- Success flash (non-AJAX fallback) -->
                 {% if messages %}
                 {% for msg in messages %}
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -198,54 +198,17 @@
                 {% endfor %}
                 {% endif %}
 
-                <!-- Booking Form -->
                 {% if car.car_type == 'new' %}
-                <h5 class="fw-bold mb-3">
-                    <i class="bi bi-car-front-fill me-2 text-success"></i>حجز تجربة قيادة
-                </h5>
+                <p class="text-muted small mb-3">احجز موعد تجربة قيادة مجانية وسنتواصل معك لتأكيد الموعد.</p>
+                <button type="button" class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#bookingModal">
+                    <i class="bi bi-car-front-fill me-2"></i>احجز تجربة قيادة
+                </button>
                 {% else %}
-                <h5 class="fw-bold mb-3">
-                    <i class="bi bi-eye-fill me-2 text-warning"></i>حجز معاينة
-                </h5>
+                <p class="text-muted small mb-3">احجز موعد معاينة للسيارة وسنتواصل معك لتأكيد الموعد.</p>
+                <button type="button" class="btn btn-warning w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#bookingModal">
+                    <i class="bi bi-eye-fill me-2"></i>احجز معاينة
+                </button>
                 {% endif %}
-
-                <form method="post" novalidate>
-                    {% csrf_token %}
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">{{ form.name.label }} <span class="text-danger">*</span></label>
-                        {{ form.name }}
-                        {% if form.name.errors %}
-                        <div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">{{ form.phone.label }} <span class="text-danger">*</span></label>
-                        {{ form.phone }}
-                        {% if form.phone.errors %}
-                        <div class="invalid-feedback d-block">{{ form.phone.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">{{ form.preferred_time.label }}</label>
-                        {{ form.preferred_time }}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">{{ form.note.label }}</label>
-                        {{ form.note }}
-                    </div>
-
-                    <button type="submit" class="btn w-100 fw-bold {% if car.car_type == 'new' %}btn-success{% else %}btn-warning{% endif %}">
-                        {% if car.car_type == 'new' %}
-                        <i class="bi bi-calendar-check me-2"></i>إرسال طلب تجربة القيادة
-                        {% else %}
-                        <i class="bi bi-calendar-check me-2"></i>إرسال طلب المعاينة
-                        {% endif %}
-                    </button>
-                </form>
 
                 <p class="text-muted small text-center mt-3 mb-0">
                     سيتواصل معك فريقنا خلال 24 ساعة
@@ -256,6 +219,86 @@
 
 </div><!-- /row -->
 
+<!-- Booking Modal -->
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="bookingModalLabel">
+                    {% if car.car_type == 'new' %}
+                    <i class="bi bi-car-front-fill me-2 text-success"></i>حجز تجربة قيادة
+                    {% else %}
+                    <i class="bi bi-eye-fill me-2 text-warning"></i>حجز معاينة
+                    {% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Success state (hidden initially) -->
+                <div id="bookingSuccess" class="text-center py-4 d-none">
+                    <div class="fs-1 mb-3">✅</div>
+                    <h5 class="fw-bold text-success">تم إرسال طلبك بنجاح!</h5>
+                    <p class="text-muted mb-0">سيتواصل معك فريقنا خلال 24 ساعة.</p>
+                </div>
+
+                <!-- Form state -->
+                <div id="bookingFormWrap">
+                    <form id="bookingForm" method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Non-field errors -->
+                        <div id="bookingNonFieldErrors" class="alert alert-danger py-2 d-none"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">
+                                {{ form.name.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            <div class="invalid-feedback" id="err-name"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">
+                                {{ form.phone.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.phone }}
+                            <div class="invalid-feedback" id="err-phone"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">{{ form.preferred_time.label }}</label>
+                            {{ form.preferred_time }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">{{ form.note.label }}</label>
+                            {{ form.note }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="modal-footer" id="bookingFooter">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" id="bookingSubmitBtn"
+                        class="btn fw-bold {% if car.car_type == 'new' %}btn-success{% else %}btn-warning{% endif %}">
+                    <span id="btnText">
+                        {% if car.car_type == 'new' %}
+                        <i class="bi bi-calendar-check me-2"></i>إرسال طلب تجربة القيادة
+                        {% else %}
+                        <i class="bi bi-calendar-check me-2"></i>إرسال طلب المعاينة
+                        {% endif %}
+                    </span>
+                    <span id="btnSpinner" class="d-none">
+                        <span class="spinner-border spinner-border-sm me-2"></span>جارٍ الإرسال...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -265,5 +308,82 @@ function switchImg(thumb) {
     document.querySelectorAll('.gallery-thumbs img').forEach(t => t.classList.remove('active'));
     thumb.classList.add('active');
 }
+
+// Reset modal state when closed
+document.getElementById('bookingModal').addEventListener('hidden.bs.modal', function () {
+    clearBookingErrors();
+    document.getElementById('bookingForm').reset();
+    document.getElementById('bookingSuccess').classList.add('d-none');
+    document.getElementById('bookingFormWrap').classList.remove('d-none');
+    document.getElementById('bookingFooter').classList.remove('d-none');
+    setBtnLoading(false);
+});
+
+function clearBookingErrors() {
+    ['name', 'phone'].forEach(function(field) {
+        const input = document.getElementById('bookingForm').querySelector('[name="' + field + '"]');
+        const errDiv = document.getElementById('err-' + field);
+        if (input) input.classList.remove('is-invalid');
+        if (errDiv) errDiv.textContent = '';
+    });
+    const nonField = document.getElementById('bookingNonFieldErrors');
+    nonField.textContent = '';
+    nonField.classList.add('d-none');
+}
+
+function showBookingErrors(errors) {
+    clearBookingErrors();
+    Object.entries(errors).forEach(function([field, msgs]) {
+        if (field === '__all__') {
+            const nonField = document.getElementById('bookingNonFieldErrors');
+            nonField.textContent = msgs.join(' ');
+            nonField.classList.remove('d-none');
+        } else {
+            const input = document.getElementById('bookingForm').querySelector('[name="' + field + '"]');
+            const errDiv = document.getElementById('err-' + field);
+            if (input) input.classList.add('is-invalid');
+            if (errDiv) errDiv.textContent = msgs[0];
+        }
+    });
+}
+
+function setBtnLoading(loading) {
+    document.getElementById('btnText').classList.toggle('d-none', loading);
+    document.getElementById('btnSpinner').classList.toggle('d-none', !loading);
+    document.getElementById('bookingSubmitBtn').disabled = loading;
+}
+
+document.getElementById('bookingSubmitBtn').addEventListener('click', function () {
+    clearBookingErrors();
+    setBtnLoading(true);
+
+    const form = document.getElementById('bookingForm');
+    const data = new FormData(form);
+
+    fetch(window.location.pathname, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: data,
+    })
+    .then(function(res) {
+        return res.json().then(function(json) {
+            return { ok: res.ok, json: json };
+        });
+    })
+    .then(function({ ok, json }) {
+        setBtnLoading(false);
+        if (ok && json.success) {
+            document.getElementById('bookingFormWrap').classList.add('d-none');
+            document.getElementById('bookingFooter').classList.add('d-none');
+            document.getElementById('bookingSuccess').classList.remove('d-none');
+        } else {
+            showBookingErrors(json.errors || {});
+        }
+    })
+    .catch(function() {
+        setBtnLoading(false);
+        alert('حدث خطأ، يرجى المحاولة مرة أخرى.');
+    });
+});
 </script>
 {% endblock %}
