@@ -15,3 +15,11 @@ def contact(request):
         form = ContactForm()
 
     return render(request, "leads/contact.html", {"form": form})
+
+
+def about(request):
+    return render(request, "leads/about.html")
+
+
+def privacy(request):
+    return render(request, "leads/privacy.html")

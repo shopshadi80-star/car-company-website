@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}من نحن — معرض السيارات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+    <!-- Page Header -->
+    <div class="text-center mb-5">
+        <h1 class="h2 fw-bold mb-2">من نحن</h1>
+        <p class="text-muted">نبذة عن معرض السيارات وقيمنا التي نؤمن بها</p>
+    </div>
+
+    <!-- About Section -->
+    <div class="row align-items-center g-5 mb-5">
+        <div class="col-lg-6">
+            <h2 class="h4 fw-bold mb-3" style="color:var(--primary)">قصتنا</h2>
+            <p class="text-muted lh-lg mb-3">
+                معرض السيارات هو وجهتك الموثوقة لشراء السيارات الجديدة والمستعملة في المملكة العربية السعودية.
+                نسعى دائماً إلى تقديم أفضل تجربة شراء للعملاء من خلال الشفافية الكاملة في عرض المعلومات
+                وتقديم خيارات متنوعة تناسب جميع الميزانيات والاحتياجات.
+            </p>
+            <p class="text-muted lh-lg">
+                نؤمن بأن شراء السيارة يجب أن يكون قراراً مريحاً ومبنياً على معلومات دقيقة وموثوقة.
+                لذلك نحرص على فحص كل سيارة مستعملة بدقة وتوفير كافة التفاصيل التي تحتاجها.
+            </p>
+        </div>
+        <div class="col-lg-6">
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="card border-0 bg-light text-center p-4 h-100">
+                        <div class="fs-1 mb-2">🏆</div>
+                        <h5 class="fw-bold mb-1">الجودة أولاً</h5>
+                        <p class="text-muted small mb-0">نضمن جودة كل سيارة قبل عرضها للبيع</p>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 bg-light text-center p-4 h-100">
+                        <div class="fs-1 mb-2">🔍</div>
+                        <h5 class="fw-bold mb-1">الشفافية</h5>
+                        <p class="text-muted small mb-0">معلومات كاملة ودقيقة عن كل سيارة</p>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 bg-light text-center p-4 h-100">
+                        <div class="fs-1 mb-2">🤝</div>
+                        <h5 class="fw-bold mb-1">خدمة متميزة</h5>
+                        <p class="text-muted small mb-0">فريق متخصص لمساعدتك في كل خطوة</p>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 bg-light text-center p-4 h-100">
+                        <div class="fs-1 mb-2">✅</div>
+                        <h5 class="fw-bold mb-1">ضمان الرضا</h5>
+                        <p class="text-muted small mb-0">رضاك عن خيارك هو هدفنا الأول</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Values Section -->
+    <div class="bg-light rounded-3 p-5 mb-5">
+        <h2 class="h4 fw-bold text-center mb-4">قيمنا الأساسية</h2>
+        <div class="row g-4">
+            <div class="col-md-4 text-center">
+                <div class="fs-2 mb-3">🛡️</div>
+                <h5 class="fw-bold mb-2">الأمانة والنزاهة</h5>
+                <p class="text-muted small">
+                    نلتزم بالصدق التام في وصف كل سيارة، بما في ذلك أي ملاحظات على حالتها.
+                    لا مفاجآت بعد الشراء.
+                </p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="fs-2 mb-3">💡</div>
+                <h5 class="fw-bold mb-2">الخبرة المتخصصة</h5>
+                <p class="text-muted small">
+                    فريقنا من المتخصصين يمتلك خبرة واسعة في سوق السيارات السعودي،
+                    ونحرص على تقديم نصائح موضوعية تخدم مصلحتك.
+                </p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="fs-2 mb-3">🚗</div>
+                <h5 class="fw-bold mb-2">تنوع الخيارات</h5>
+                <p class="text-muted small">
+                    نوفر مجموعة متنوعة من السيارات الجديدة والمستعملة بمختلف الماركات
+                    والأسعار لتناسب جميع الاحتياجات.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center">
+        <h3 class="h5 fw-bold mb-3">هل أنت مستعد للعثور على سيارتك المثالية؟</h3>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{% url 'cars:new_list' %}" class="btn btn-primary px-4 py-2 fw-bold">
+                تصفح السيارات الجديدة
+            </a>
+            <a href="{% url 'cars:used_list' %}" class="btn btn-outline-secondary px-4 py-2 fw-bold">
+                تصفح السيارات المستعملة
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
