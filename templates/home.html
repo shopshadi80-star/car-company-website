@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}معرض السيارات — جديدة ومستعملة{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+        min-height: 480px;
+        display: flex;
+        align-items: center;
+        color: #fff;
+    }
+    .trust-icon { font-size: 2.5rem; }
+    .car-card { transition: transform .15s, box-shadow .15s; border-radius: 12px; overflow: hidden; }
+    .car-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+    .car-card img { height: 180px; object-fit: cover; width: 100%; }
+    .car-card .no-image { height: 180px; background: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="hero rounded-3 px-4 px-md-5 mb-5">
+    <div class="text-center w-100">
+        <h1 class="display-5 fw-bold mb-3">أفضل السيارات بأسعار تنافسية</h1>
+        <p class="lead text-white-50 mb-4">نقدم لك سيارات جديدة ومستعملة بمواصفات موثقة وشفافية كاملة</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="{% url 'cars:new_list' %}" class="btn btn-success btn-lg px-4">
+                🚘 تصفح السيارات الجديدة
+            </a>
+            <a href="{% url 'cars:used_list' %}" class="btn btn-outline-light btn-lg px-4">
+                🔍 تصفح السيارات المستعملة
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Trust Points -->
+<div class="row g-4 text-center mb-5">
+    <div class="col-md-4">
+        <div class="trust-icon">✅</div>
+        <h5 class="fw-bold mt-2">فحص شامل</h5>
+        <p class="text-muted">كل سيارة مستعملة تمر بفحص دقيق قبل العرض</p>
+    </div>
+    <div class="col-md-4">
+        <div class="trust-icon">📋</div>
+        <h5 class="fw-bold mt-2">شفافية تامة</h5>
+        <p class="text-muted">نعرض جميع تفاصيل السيارة بدون إخفاء</p>
+    </div>
+    <div class="col-md-4">
+        <div class="trust-icon">🛡️</div>
+        <h5 class="fw-bold mt-2">ضمان موثوق</h5>
+        <p class="text-muted">نضمن جودة ما نبيع ونقف خلف كل صفقة</p>
+    </div>
+</div>
+
+<!-- Latest Used Cars -->
+{% if latest_used %}
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 fw-bold mb-0">أحدث السيارات المستعملة</h2>
+        <a href="{% url 'cars:used_list' %}" class="btn btn-sm btn-outline-dark">عرض الكل</a>
+    </div>
+    <div class="row g-3">
+        {% for car in latest_used %}
+        <div class="col-sm-6 col-lg-4 col-xl-2">
+            <div class="card car-card border-0 shadow-sm h-100">
+                {% with car.images.all as images %}
+                {% if images %}
+                    <img src="{{ images.0.image.url }}" alt="{{ car.brand }} {{ car.model_name }}" loading="lazy">
+                {% else %}
+                    <div class="no-image">🚗</div>
+                {% endif %}
+                {% endwith %}
+                <div class="card-body p-2">
+                    <p class="fw-bold small mb-1">{{ car.brand }} {{ car.model_name }} {{ car.year }}</p>
+                    {% if car.price %}
+                    <p class="text-success fw-bold small mb-1">{{ car.price|floatformat:0 }} ر.س</p>
+                    {% endif %}
+                    {% if car.mileage_km %}
+                    <p class="text-muted" style="font-size:.75rem">{{ car.mileage_km|floatformat:0 }} كم</p>
+                    {% endif %}
+                    <a href="{% url 'cars:used_list' %}" class="btn btn-sm btn-outline-dark w-100 mt-1">التفاصيل</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Latest New Cars -->
+{% if latest_new %}
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 fw-bold mb-0">أحدث السيارات الجديدة</h2>
+        <a href="{% url 'cars:new_list' %}" class="btn btn-sm btn-outline-dark">عرض الكل</a>
+    </div>
+    <div class="row g-3">
+        {% for car in latest_new %}
+        <div class="col-sm-6 col-lg-4">
+            <div class="card car-card border-0 shadow-sm h-100">
+                {% with car.images.all as images %}
+                {% if images %}
+                    <img src="{{ images.0.image.url }}" alt="{{ car.brand }} {{ car.model_name }}" loading="lazy">
+                {% else %}
+                    <div class="no-image">🚗</div>
+                {% endif %}
+                {% endwith %}
+                <div class="card-body">
+                    <p class="fw-bold mb-1">{{ car.brand }} {{ car.model_name }} {{ car.year }}</p>
+                    {% if car.trim %}<p class="text-muted small mb-1">{{ car.trim }}</p>{% endif %}
+                    {% if car.price %}
+                    <p class="text-success fw-bold mb-2">{{ car.price|floatformat:0 }} ر.س</p>
+                    {% endif %}
+                    <a href="{% url 'cars:new_list' %}" class="btn btn-sm btn-dark w-100">التفاصيل</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Contact CTA -->
+<div class="bg-dark text-white rounded-3 p-4 p-md-5 text-center mb-2">
+    <h2 class="fw-bold mb-2">هل تحتاج مساعدة؟</h2>
+    <p class="text-white-50 mb-3">فريقنا جاهز للإجابة على جميع استفساراتك</p>
+    <a href="/contact/" class="btn btn-success btn-lg">تواصل معنا</a>
+</div>
+
+{% endblock %}

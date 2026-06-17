@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}السيارات الجديدة — معرض السيارات{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card { background: #f8f9fa; border-radius: 12px; }
+    .car-card { transition: transform .15s, box-shadow .15s; border-radius: 12px; overflow: hidden; }
+    .car-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+    .car-card img { height: 200px; object-fit: cover; width: 100%; }
+    .car-card .no-image { height: 200px; background: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+    .badge-new { background: #198754; }
+    .results-count { color: #6c757d; font-size: .9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-0">السيارات الجديدة</h1>
+        <p class="text-muted mb-0 mt-1">اكتشف أحدث الموديلات المتاحة لدينا</p>
+    </div>
+    <span class="badge bg-success fs-6 px-3 py-2">{{ cars|length }} سيارة</span>
+</div>
+
+<!-- Filters -->
+<div class="card filter-card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" id="filterForm">
+            <div class="row g-3 align-items-end">
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small">الماركة</label>
+                    <select name="brand" class="form-select form-select-sm">
+                        <option value="">كل الماركات</option>
+                        {% for brand in brands %}
+                        <option value="{{ brand.pk }}" {% if selected_brand == brand.pk|stringformat:"s" %}selected{% endif %}>{{ brand.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small">السنة</label>
+                    <select name="year" class="form-select form-select-sm">
+                        <option value="">كل السنوات</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if selected_year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small">السعر من (ر.س)</label>
+                    <input type="number" name="price_min" class="form-control form-control-sm" placeholder="0" value="{{ price_min|default:'' }}" min="0">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small">السعر إلى (ر.س)</label>
+                    <input type="number" name="price_max" class="form-control form-control-sm" placeholder="غير محدد" value="{{ price_max|default:'' }}" min="0">
+                </div>
+
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-dark btn-sm flex-fill">
+                        <i class="bi bi-funnel-fill me-1"></i> تصفية
+                    </button>
+                    <a href="{% url 'cars:new_list' %}" class="btn btn-outline-secondary btn-sm flex-fill">
+                        إعادة ضبط
+                    </a>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results -->
+{% if cars %}
+<div class="row g-4">
+    {% for car in cars %}
+    <div class="col-sm-6 col-lg-4">
+        <div class="card car-card border-0 shadow-sm h-100">
+
+            {% with car.images.all as images %}
+            {% if images %}
+                {% for img in images %}
+                    {% if img.is_main %}
+                        <img src="{{ img.image.url }}" alt="{{ car.brand }} {{ car.model_name }}" loading="lazy">
+                        {% if not forloop.last %}{% endif %}
+                    {% endif %}
+                {% empty %}{% endfor %}
+                {% comment %}Fallback to first image if no main{% endcomment %}
+                {% with images.0 as first_img %}
+                    {% if not images|dictsort:"is_main"|last %}
+                        <img src="{{ first_img.image.url }}" alt="{{ car.brand }} {{ car.model_name }}" loading="lazy">
+                    {% endif %}
+                {% endwith %}
+            {% else %}
+                <div class="no-image">🚗</div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title fw-bold mb-0">{{ car.brand }} {{ car.model_name }}</h5>
+                    <span class="badge badge-new text-white">{{ car.year }}</span>
+                </div>
+
+                {% if car.trim %}
+                <p class="text-muted small mb-2">{{ car.trim }}</p>
+                {% endif %}
+
+                {% if car.price %}
+                <p class="fw-bold text-success mb-2">
+                    {% if car.price_label %}{{ car.price_label }} {% endif %}
+                    {{ car.price|floatformat:0 }} ر.س
+                </p>
+                {% elif car.price_label %}
+                <p class="fw-bold text-success mb-2">{{ car.price_label }}</p>
+                {% endif %}
+
+                {% if car.features_summary %}
+                <p class="text-muted small mb-3" style="line-height:1.6">
+                    {{ car.features_summary|truncatechars:120 }}
+                </p>
+                {% endif %}
+
+                <div class="mt-auto">
+                    <a href="#" class="btn btn-dark w-100">التفاصيل</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="text-center py-5">
+    <div style="font-size:4rem">🔍</div>
+    <h4 class="mt-3 text-muted">لا توجد سيارات تطابق معايير البحث</h4>
+    <p class="text-muted">جرّب تغيير الفلاتر أو</p>
+    <a href="{% url 'cars:new_list' %}" class="btn btn-outline-dark">عرض كل السيارات الجديدة</a>
+</div>
+{% endif %}
+
+{% endblock %}
