@@ -1,7 +1,8 @@
-
-   from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 
 from .models import Car, Brand
+from leads.forms import TestDriveForm, InspectionForm
 
 
 def home(request):
@@ -78,3 +79,33 @@ def used_cars_list(request):
         "price_max": price_max,
     }
     return render(request, "cars/used_cars_list.html", context)
+
+
+def car_detail(request, pk):
+    car = get_object_or_404(Car, pk=pk, status=Car.Status.AVAILABLE)
+    images = car.images.all()
+
+    if car.car_type == Car.CarType.NEW:
+        form_class = TestDriveForm
+        form_submitted_key = "test_drive_sent"
+    else:
+        form_class = InspectionForm
+        form_submitted_key = "inspection_sent"
+
+    if request.method == "POST":
+        form = form_class(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.car = car
+            obj.save()
+            messages.success(request, "تم إرسال طلبك بنجاح، سنتواصل معك قريباً.")
+            return redirect("cars:car_detail", pk=pk)
+    else:
+        form = form_class()
+
+    context = {
+        "car": car,
+        "images": images,
+        "form": form,
+    }
+    return render(request, "cars/car_detail.html", context)

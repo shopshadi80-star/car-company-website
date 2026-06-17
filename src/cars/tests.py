@@ -1,8 +1,10 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.urls import reverse
 
 from .models import Brand, Car, CarImage
+from leads.models import TestDriveRequest, InspectionRequest
 
 
 def make_car(**kwargs):
@@ -123,3 +125,174 @@ class CarImageModelTest(TestCase):
     def test_str_main_image(self):
         img = CarImage.objects.create(car=self.car, image="cars/img.jpg", is_main=True)
         self.assertIn("رئيسية", str(img))
+
+
+# ── Task 3.7: Car Detail Page Tests ────────────────────────────────────────
+
+class UsedCarDetailViewTest(TestCase):
+    def setUp(self):
+        self.car = make_car(
+            car_type=Car.CarType.USED,
+            mileage_km=50000,
+            transmission=Car.Transmission.AUTOMATIC,
+            fuel_type=Car.FuelType.PETROL,
+            engine_size="2.5L",
+            exterior_color="أبيض",
+            origin=Car.Origin.SAUDI,
+            city="الرياض",
+            price=80000,
+            description="السيارة بحالة ممتازة",
+        )
+        self.url = reverse("cars:car_detail", args=[self.car.pk])
+
+    def test_detail_page_returns_200(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_detail_page_uses_correct_template(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "cars/car_detail.html")
+
+    def test_detail_page_shows_car_title(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "تويوتا")
+        self.assertContains(response, "كامري")
+
+    def test_detail_page_shows_price(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "80,000")
+
+    def test_detail_page_shows_specs(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "50,000")  # mileage
+        self.assertContains(response, "الرياض")  # city
+
+    def test_detail_page_shows_inspection_form(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "حجز معاينة")
+
+    def test_detail_page_does_not_show_test_drive_form(self):
+        response = self.client.get(self.url)
+        self.assertNotContains(response, "حجز تجربة قيادة")
+
+    def test_hidden_car_returns_404(self):
+        hidden = make_car(model_name="مخفية", status=Car.Status.HIDDEN)
+        response = self.client.get(reverse("cars:car_detail", args=[hidden.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_sold_car_returns_404(self):
+        sold = make_car(model_name="مباعة", status=Car.Status.SOLD)
+        response = self.client.get(reverse("cars:car_detail", args=[sold.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_inspection_form_submission_saves_request(self):
+        response = self.client.post(self.url, {
+            "name": "محمد العتيبي",
+            "phone": "0501234567",
+            "preferred_time": "الخميس صباحاً",
+            "note": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        req = InspectionRequest.objects.get(car=self.car)
+        self.assertEqual(req.name, "محمد العتيبي")
+        self.assertEqual(req.phone, "0501234567")
+
+    def test_inspection_form_submission_requires_name(self):
+        response = self.client.post(self.url, {
+            "name": "",
+            "phone": "0501234567",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(InspectionRequest.objects.filter(car=self.car).exists())
+
+    def test_inspection_form_submission_requires_phone(self):
+        response = self.client.post(self.url, {
+            "name": "محمد",
+            "phone": "",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(InspectionRequest.objects.filter(car=self.car).exists())
+
+    def test_inspection_request_linked_to_car(self):
+        self.client.post(self.url, {
+            "name": "أحمد",
+            "phone": "0559876543",
+        })
+        req = InspectionRequest.objects.get(car=self.car)
+        self.assertEqual(req.car, self.car)
+
+    def test_success_message_after_submission(self):
+        response = self.client.post(self.url, {
+            "name": "سارة",
+            "phone": "0551234567",
+        }, follow=True)
+        self.assertContains(response, "تم إرسال طلبك بنجاح")
+
+
+class NewCarDetailViewTest(TestCase):
+    def setUp(self):
+        self.car = make_car(
+            car_type=Car.CarType.NEW,
+            trim="Luxury",
+            features_summary="نظام ملاحة\nكاميرا خلفية\nمقاعد جلدية",
+            price=150000,
+            price_label="ابتداءً من",
+        )
+        self.url = reverse("cars:car_detail", args=[self.car.pk])
+
+    def test_detail_page_returns_200(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_detail_page_shows_features(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "كاميرا خلفية")
+
+    def test_detail_page_shows_test_drive_form(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "حجز تجربة قيادة")
+
+    def test_detail_page_does_not_show_inspection_form(self):
+        response = self.client.get(self.url)
+        self.assertNotContains(response, "حجز معاينة")
+
+    def test_test_drive_form_submission_saves_request(self):
+        response = self.client.post(self.url, {
+            "name": "فهد السبيعي",
+            "phone": "0507654321",
+            "preferred_time": "الأحد من 10 صباحاً",
+            "note": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        req = TestDriveRequest.objects.get(car=self.car)
+        self.assertEqual(req.name, "فهد السبيعي")
+
+    def test_test_drive_request_linked_to_car(self):
+        self.client.post(self.url, {
+            "name": "نورة",
+            "phone": "0561234567",
+        })
+        req = TestDriveRequest.objects.get(car=self.car)
+        self.assertEqual(req.car, self.car)
+
+    def test_price_label_shown(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "ابتداءً من")
+
+
+class CarDetailLinkTest(TestCase):
+    """Ensure the list pages contain links to the detail page."""
+
+    def setUp(self):
+        self.used_car = make_car(car_type=Car.CarType.USED)
+        self.new_car = make_car(car_type=Car.CarType.NEW, model_name="كورولا")
+
+    def test_used_list_links_to_detail(self):
+        response = self.client.get(reverse("cars:used_list"))
+        expected_url = reverse("cars:car_detail", args=[self.used_car.pk])
+        self.assertContains(response, expected_url)
+
+    def test_new_list_links_to_detail(self):
+        response = self.client.get(reverse("cars:new_list"))
+        expected_url = reverse("cars:car_detail", args=[self.new_car.pk])
+        self.assertContains(response, expected_url)
