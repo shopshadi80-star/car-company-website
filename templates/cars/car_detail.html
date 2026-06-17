@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ car.brand }} {{ car.model_name }} {{ car.year }} — معرض السيارات{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gallery-main img {
+        width: 100%;
+        height: 420px;
+        object-fit: cover;
+        border-radius: 12px;
+        cursor: pointer;
+    }
+    .gallery-main .no-image {
+        height: 420px;
+        background: #e9ecef;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 6rem;
+    }
+    .gallery-thumbs img {
+        width: 80px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        opacity: .7;
+        transition: opacity .15s, outline .15s;
+    }
+    .gallery-thumbs img.active,
+    .gallery-thumbs img:hover {
+        opacity: 1;
+        outline: 3px solid #0d6efd;
+    }
+    .specs-table td:first-child {
+        color: #6c757d;
+        width: 40%;
+        font-weight: 500;
+    }
+    .booking-card {
+        border-radius: 16px;
+        position: sticky;
+        top: 80px;
+    }
+    .price-block {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #198754;
+    }
+    .badge-type-new  { background: #198754; }
+    .badge-type-used { background: #fd7e14; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">الرئيسية</a></li>
+        {% if car.car_type == 'new' %}
+        <li class="breadcrumb-item"><a href="{% url 'cars:new_list' %}">السيارات الجديدة</a></li>
+        {% else %}
+        <li class="breadcrumb-item"><a href="{% url 'cars:used_list' %}">السيارات المستعملة</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">{{ car.brand }} {{ car.model_name }}</li>
+    </ol>
+</nav>
+
+<!-- Title Row -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <h1 class="h3 fw-bold mb-0">{{ car.brand }} {{ car.model_name }} {{ car.year }}</h1>
+    {% if car.car_type == 'new' %}
+        <span class="badge badge-type-new text-white">جديدة</span>
+    {% else %}
+        <span class="badge badge-type-used text-white">مستعملة</span>
+    {% endif %}
+    {% if car.trim %}
+        <span class="badge bg-secondary">{{ car.trim }}</span>
+    {% endif %}
+</div>
+
+<div class="row g-4">
+
+    <!-- Left: Gallery + Specs -->
+    <div class="col-lg-7">
+
+        <!-- Gallery -->
+        <div class="gallery-main mb-3" id="galleryMain">
+            {% with images.first as first_img %}
+            {% if first_img %}
+                <img src="{{ first_img.image.url }}"
+                     alt="{{ car.brand }} {{ car.model_name }}"
+                     id="mainImg">
+            {% else %}
+                <div class="no-image">🚗</div>
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        {% if images.count > 1 %}
+        <div class="gallery-thumbs d-flex flex-wrap gap-2 mb-4">
+            {% for img in images %}
+            <img src="{{ img.image.url }}"
+                 alt="صورة {{ forloop.counter }}"
+                 class="{% if forloop.first %}active{% endif %}"
+                 onclick="switchImg(this)">
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Specs Table -->
+        {% if car.car_type == 'used' %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold border-bottom">المواصفات الأساسية</div>
+            <div class="card-body p-0">
+                <table class="table specs-table mb-0">
+                    <tbody>
+                        <tr><td>السنة</td><td>{{ car.year }}</td></tr>
+                        {% if car.mileage_km %}
+                        <tr><td>الممشى</td><td>{{ car.mileage_km|intcomma }} كم</td></tr>
+                        {% endif %}
+                        {% if car.transmission %}
+                        <tr><td>ناقل الحركة</td><td>{{ car.get_transmission_display }}</td></tr>
+                        {% endif %}
+                        {% if car.fuel_type %}
+                        <tr><td>نوع الوقود</td><td>{{ car.get_fuel_type_display }}</td></tr>
+                        {% endif %}
+                        {% if car.engine_size %}
+                        <tr><td>المحرك</td><td>{{ car.engine_size }}</td></tr>
+                        {% endif %}
+                        {% if car.exterior_color %}
+                        <tr><td>اللون الخارجي</td><td>{{ car.exterior_color }}</td></tr>
+                        {% endif %}
+                        {% if car.city %}
+                        <tr><td>المدينة</td><td>{{ car.city }}</td></tr>
+                        {% endif %}
+                        {% if car.origin %}
+                        <tr><td>الوارد</td><td>{{ car.get_origin_display }}</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <!-- New Car Specs -->
+        {% if car.features_summary %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold border-bottom">المواصفات</div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space: pre-line; line-height: 1.8;">{{ car.features_summary }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Description -->
+        {% if car.description %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold border-bottom">وصف الحالة</div>
+            <div class="card-body">
+                <p class="mb-0" style="line-height: 1.8;">{{ car.description }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Right: Price + Booking -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow booking-card">
+            <div class="card-body p-4">
+
+                <!-- Price -->
+                {% if car.price %}
+                <div class="price-block mb-1">
+                    {% if car.price_label %}<small class="fs-6 text-muted">{{ car.price_label }}</small><br>{% endif %}
+                    {{ car.price|intcomma }} <small class="fs-5">ر.س</small>
+                </div>
+                {% elif car.price_label %}
+                <div class="price-block mb-1">{{ car.price_label }}</div>
+                {% else %}
+                <p class="text-muted mb-3">السعر عند الطلب</p>
+                {% endif %}
+
+                <hr>
+
+                <!-- Success Message -->
+                {% if messages %}
+                {% for msg in messages %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>{{ msg }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                <!-- Booking Form -->
+                {% if car.car_type == 'new' %}
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-car-front-fill me-2 text-success"></i>حجز تجربة قيادة
+                </h5>
+                {% else %}
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-eye-fill me-2 text-warning"></i>حجز معاينة
+                </h5>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">{{ form.name.label }} <span class="text-danger">*</span></label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">{{ form.phone.label }} <span class="text-danger">*</span></label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                        <div class="invalid-feedback d-block">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">{{ form.preferred_time.label }}</label>
+                        {{ form.preferred_time }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">{{ form.note.label }}</label>
+                        {{ form.note }}
+                    </div>
+
+                    <button type="submit" class="btn w-100 fw-bold {% if car.car_type == 'new' %}btn-success{% else %}btn-warning{% endif %}">
+                        {% if car.car_type == 'new' %}
+                        <i class="bi bi-calendar-check me-2"></i>إرسال طلب تجربة القيادة
+                        {% else %}
+                        <i class="bi bi-calendar-check me-2"></i>إرسال طلب المعاينة
+                        {% endif %}
+                    </button>
+                </form>
+
+                <p class="text-muted small text-center mt-3 mb-0">
+                    سيتواصل معك فريقنا خلال 24 ساعة
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /row -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchImg(thumb) {
+    document.getElementById('mainImg').src = thumb.src;
+    document.querySelectorAll('.gallery-thumbs img').forEach(t => t.classList.remove('active'));
+    thumb.classList.add('active');
+}
+</script>
+{% endblock %}

@@ -1,93 +1,225 @@
-from django.shortcuts import render, get_object_or_404
+{% extends "base.html" %}
+{% load static %}
 
-from .models import Car, Brand
+{% block title %}الرئيسية — معرض السيارات{% endblock %}
 
+{% block content %}
 
-def home(request):
-    latest_used = Car.objects.filter(car_type=Car.CarType.USED, status=Car.Status.AVAILABLE).select_related("brand").prefetch_related("images")[:6]
-    latest_new = Car.objects.filter(car_type=Car.CarType.NEW, status=Car.Status.AVAILABLE).select_related("brand").prefetch_related("images")[:3]
-    return render(request, "home.html", {"latest_used": latest_used, "latest_new": latest_new})
+<!-- ===== Hero ===== -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-3">أفضل السيارات في مكان واحد</h1>
+        <p class="lead mb-5 opacity-90">
+            سيارات جديدة ومستعملة بأسعار تنافسية — جودة موثوقة وشفافية تامة.
+        </p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="/cars/new/" class="btn btn-primary btn-lg px-5 fw-bold">
+                🚘 تصفح السيارات الجديدة
+            </a>
+            <a href="/cars/used/" class="btn btn-outline-light btn-lg px-5 fw-bold">
+                🔍 تصفح السيارات المستعملة
+            </a>
+        </div>
+    </div>
+</section>
 
+<!-- ===== Trust Points ===== -->
+<section class="py-5" style="background-color: var(--bg-light);">
+    <div class="container">
+        <div class="row g-4 text-center">
+            <div class="col-md-4">
+                <div class="feature-icon">✅</div>
+                <h5 class="fw-bold">فحص شامل</h5>
+                <p class="text-muted small">كل سيارة مستعملة تخضع لفحص دقيق قبل عرضها للبيع.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-icon">📋</div>
+                <h5 class="fw-bold">شفافية تامة</h5>
+                <p class="text-muted small">نعرض تاريخ السيارة كاملاً دون إخفاء أي تفاصيل.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-icon">🛡️</div>
+                <h5 class="fw-bold">ضمان الجودة</h5>
+                <p class="text-muted small">نضمن جودة ما نبيعه ونقف خلف كل سيارة في معرضنا.</p>
+            </div>
+        </div>
+    </div>
+</section>
 
-def new_cars_list(request):
-    cars = Car.objects.filter(car_type=Car.CarType.NEW, status=Car.Status.AVAILABLE).select_related("brand").prefetch_related("images")
+<!-- ===== Latest Used Cars ===== -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title fw-bold">أحدث السيارات المستعملة</h2>
 
-    brands = Brand.objects.filter(car__car_type=Car.CarType.NEW, car__status=Car.Status.AVAILABLE).distinct()
-    years = Car.objects.filter(car_type=Car.CarType.NEW, status=Car.Status.AVAILABLE).values_list("year", flat=True).order_by("-year").distinct()
+        {% if latest_used %}
+        <div class="row g-4">
+            {% for car in latest_used %}
+            <div class="col-md-6 col-lg-4">
+                <div class="car-card h-100 d-flex flex-column">
+                    {% with car.images.first as img %}
+                    {% if img %}
+                    <img src="{{ img.image.url }}" alt="{{ car.brand }} {{ car.model_name }}"
+                         class="car-img">
+                    {% else %}
+                    <div class="car-img-placeholder">🚗</div>
+                    {% endif %}
+                    {% endwith %}
 
-    brand_id = request.GET.get("brand")
-    year = request.GET.get("year")
-    price_min = request.GET.get("price_min")
-    price_max = request.GET.get("price_max")
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold mb-0">{{ car.brand }} {{ car.model_name }}</h6>
+                            <span class="badge" style="background:var(--secondary)">{{ car.year }}</span>
+                        </div>
 
-    if brand_id:
-        cars = cars.filter(brand_id=brand_id)
-    if year:
-        cars = cars.filter(year=year)
-    if price_min:
-        cars = cars.filter(price__gte=price_min)
-    if price_max:
-        cars = cars.filter(price__lte=price_max)
+                        <ul class="list-unstyled small text-muted mb-3">
+                            {% if car.price %}
+                            <li>💰 {{ car.price|floatformat:0 }} ر.س</li>
+                            {% endif %}
+                            {% if car.mileage_km %}
+                            <li>📍 {{ car.mileage_km|floatformat:0 }} كم</li>
+                            {% endif %}
+                            {% if car.city %}
+                            <li>🏙️ {{ car.city }}</li>
+                            {% endif %}
+                            {% if car.transmission %}
+                            <li>⚙️ {{ car.get_transmission_display }}</li>
+                            {% endif %}
+                        </ul>
 
-    context = {
-        "cars": cars,
-        "brands": brands,
-        "years": years,
-        "selected_brand": brand_id,
-        "selected_year": year,
-        "price_min": price_min,
-        "price_max": price_max,
-    }
-    return render(request, "cars/new_cars_list.html", context)
+                        <a href="{% url 'cars:car_detail' car.pk %}" class="btn btn-outline-primary btn-sm mt-auto fw-bold">
+                            التفاصيل
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
 
+        <div class="text-center mt-4">
+            <a href="/cars/used/" class="btn btn-secondary px-5 fw-bold">
+                عرض جميع السيارات المستعملة
+            </a>
+        </div>
 
-def used_cars_list(request):
-    cars = Car.objects.filter(car_type=Car.CarType.USED, status=Car.Status.AVAILABLE).select_related("brand").prefetch_related("images")
+        {% else %}
+        <div class="alert alert-light text-center py-5">
+            <span style="font-size:2.5rem">🚗</span>
+            <p class="mt-2 mb-0 text-muted">لا توجد سيارات مستعملة متاحة حالياً.</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
 
-    brands = Brand.objects.filter(car__car_type=Car.CarType.USED, car__status=Car.Status.AVAILABLE).distinct()
-    cities = Car.objects.filter(car_type=Car.CarType.USED, status=Car.Status.AVAILABLE).exclude(city="").values_list("city", flat=True).order_by("city").distinct()
-    years = Car.objects.filter(car_type=Car.CarType.USED, status=Car.Status.AVAILABLE).values_list("year", flat=True).order_by("-year").distinct()
+<!-- ===== Latest New Cars ===== -->
+<section class="py-5" style="background-color: var(--bg-light);">
+    <div class="container">
+        <h2 class="section-title fw-bold">أحدث السيارات الجديدة</h2>
 
-    brand_id = request.GET.get("brand")
-    year = request.GET.get("year")
-    city = request.GET.get("city")
-    price_min = request.GET.get("price_min")
-    price_max = request.GET.get("price_max")
+        {% if latest_new %}
+        <div class="row g-4">
+            {% for car in latest_new %}
+            <div class="col-md-4">
+                <div class="car-card h-100 d-flex flex-column">
+                    {% with car.images.first as img %}
+                    {% if img %}
+                    <img src="{{ img.image.url }}" alt="{{ car.brand }} {{ car.model_name }}"
+                         class="car-img">
+                    {% else %}
+                    <div class="car-img-placeholder">🚘</div>
+                    {% endif %}
+                    {% endwith %}
 
-    if brand_id:
-        cars = cars.filter(brand_id=brand_id)
-    if year:
-        cars = cars.filter(year=year)
-    if city:
-        cars = cars.filter(city=city)
-    if price_min:
-        cars = cars.filter(price__gte=price_min)
-    if price_max:
-        cars = cars.filter(price__lte=price_max)
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        <span class="badge mb-2 align-self-start"
+                              style="background:var(--primary);color:#fff">جديدة</span>
 
-    context = {
-        "cars": cars,
-        "brands": brands,
-        "cities": cities,
-        "years": years,
-        "selected_brand": brand_id,
-        "selected_year": year,
-        "selected_city": city,
-        "price_min": price_min,
-        "price_max": price_max,
-    }
-    return render(request, "cars/used_cars_list.html", context) 
-from django.contrib import admin
-from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-from cars.views import home
+                        <h6 class="fw-bold mb-1">{{ car.brand }} {{ car.model_name }}</h6>
+                        <p class="small text-muted mb-1">{{ car.year }}{% if car.trim %} — {{ car.trim }}{% endif %}</p>
 
-urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("", home, name="home"),
-    path("cars/", include("cars.urls")),
-]
+                        {% if car.price %}
+                        <p class="fw-bold mb-2" style="color:var(--primary-dark)">
+                            {% if car.price_label %}{{ car.price_label }} {% endif %}
+                            {{ car.price|floatformat:0 }} ر.س
+                        </p>
+                        {% elif car.price_label %}
+                        <p class="fw-bold mb-2" style="color:var(--primary-dark)">{{ car.price_label }}</p>
+                        {% endif %}
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+                        <a href="{% url 'cars:car_detail' car.pk %}" class="btn btn-primary btn-sm mt-auto fw-bold">
+                            التفاصيل وحجز تجربة قيادة
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="/cars/new/" class="btn btn-secondary px-5 fw-bold">
+                عرض جميع السيارات الجديدة
+            </a>
+        </div>
+
+        {% else %}
+        <div class="alert alert-light text-center py-5">
+            <span style="font-size:2.5rem">🚘</span>
+            <p class="mt-2 mb-0 text-muted">لا توجد سيارات جديدة متاحة حالياً.</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- ===== Why Us (Advantages) ===== -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title fw-bold text-center w-100 d-block mb-5">لماذا تختارنا؟</h2>
+        <div class="row g-4 align-items-center">
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li class="d-flex align-items-start mb-4">
+                        <span class="me-3 fs-3">🏆</span>
+                        <div>
+                            <h6 class="fw-bold mb-1">خبرة طويلة في السوق</h6>
+                            <p class="text-muted small mb-0">سنوات من الخبرة في تداول السيارات داخل المملكة تجعلنا الخيار الأول.</p>
+                        </div>
+                    </li>
+                    <li class="d-flex align-items-start mb-4">
+                        <span class="me-3 fs-3">💳</span>
+                        <div>
+                            <h6 class="fw-bold mb-1">أسعار تنافسية</h6>
+                            <p class="text-muted small mb-0">نضمن أفضل سعر مقارنةً بالسوق مع جودة لا تُساوم عليها.</p>
+                        </div>
+                    </li>
+                    <li class="d-flex align-items-start">
+                        <span class="me-3 fs-3">🤝</span>
+                        <div>
+                            <h6 class="fw-bold mb-1">خدمة ما بعد البيع</h6>
+                            <p class="text-muted small mb-0">فريقنا متاح لمساعدتك بعد إتمام الصفقة لضمان رضاك التام.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6 text-center">
+                <div class="p-4 rounded-4" style="background:var(--bg-light)">
+                    <div style="font-size:4rem">🚗</div>
+                    <h4 class="fw-bold mt-3" style="color:var(--secondary)">معرض السيارات</h4>
+                    <p class="text-muted small">ثقتك أهم من أي صفقة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== Contact Strip ===== -->
+<section class="contact-strip py-5">
+    <div class="container text-center">
+        <h3 class="fw-bold mb-2">هل لديك سؤال؟</h3>
+        <p class="text-muted mb-4">تواصل معنا الآن وسيرد عليك فريقنا في أقرب وقت.</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="/contact/" class="btn btn-primary px-5 fw-bold">تواصل معنا</a>
+            <a href="tel:+966500000000" class="btn btn-outline-secondary px-5 fw-bold">📞 اتصل بنا</a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
