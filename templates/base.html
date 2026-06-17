@@ -39,7 +39,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}"
-                       href="/contact/">تواصل معنا</a>
+                       href="{% url 'leads:contact' %}">تواصل معنا</a>
                 </li>
             </ul>
         </div>

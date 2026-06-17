@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}تواصل معنا — معرض السيارات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="h2 fw-bold mb-2">تواصل معنا</h1>
+                <p class="text-muted">نحن هنا للإجابة على جميع استفساراتك. أرسل لنا رسالة وسنتواصل معك في أقرب وقت.</p>
+            </div>
+
+            <div class="row g-5">
+
+                <!-- Contact Info -->
+                <div class="col-md-4">
+                    <div class="d-flex flex-column gap-4">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="fs-3">📞</div>
+                            <div>
+                                <h6 class="fw-bold mb-1">الهاتف</h6>
+                                <p class="text-muted small mb-0">+966 5X XXX XXXX</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="fs-3">✉️</div>
+                            <div>
+                                <h6 class="fw-bold mb-1">البريد الإلكتروني</h6>
+                                <p class="text-muted small mb-0">info@showroom.sa</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="fs-3">📍</div>
+                            <div>
+                                <h6 class="fw-bold mb-1">الموقع</h6>
+                                <p class="text-muted small mb-0">الرياض، المملكة العربية السعودية</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="fs-3">🕐</div>
+                            <div>
+                                <h6 class="fw-bold mb-1">ساعات العمل</h6>
+                                <p class="text-muted small mb-0">السبت – الخميس<br>9 صباحاً – 9 مساءً</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Form -->
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+
+                            <h5 class="fw-bold mb-4">أرسل لنا رسالة</h5>
+
+                            {% if messages %}
+                            {% for msg in messages %}
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <i class="bi bi-check-circle-fill me-2"></i>{{ msg }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+
+                            <form method="post" novalidate>
+                                {% csrf_token %}
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">
+                                        {{ form.name.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold small">{{ form.phone.label }}</label>
+                                        {{ form.phone }}
+                                        {% if form.phone.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.phone.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold small">{{ form.email.label }}</label>
+                                        {{ form.email }}
+                                        {% if form.email.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.email.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <p class="text-muted small mb-3">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    يرجى إدخال رقم الجوال أو البريد الإلكتروني على الأقل لنتمكن من التواصل معك.
+                                </p>
+
+                                {% if form.non_field_errors %}
+                                <div class="alert alert-danger py-2">
+                                    {% for error in form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold small">
+                                        {{ form.message.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.message }}
+                                    {% if form.message.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.message.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
+                                    <i class="bi bi-send me-2"></i>إرسال الرسالة
+                                </button>
+                            </form>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
