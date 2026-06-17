@@ -1,134 +1,93 @@
-{% extends "base.html" %}
+from django.shortcuts import render, get_object_or_404
 
-{% block title %}معرض السيارات — جديدة ومستعملة{% endblock %}
+from .models import Car, Brand
 
-{% block extra_css %}
-<style>
-    .hero {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-        min-height: 480px;
-        display: flex;
-        align-items: center;
-        color: #fff;
+
+def home(request):
+    latest_used = Car.objects.filter(car_type=Car.CarType.USED, status=Car.Status.AVAILABLE).select_related("brand").prefetch_related("images")[:6]
+    latest_new = Car.objects.filter(car_type=Car.CarType.NEW, status=Car.Status.AVAILABLE).select_related("brand").prefetch_related("images")[:3]
+    return render(request, "home.html", {"latest_used": latest_used, "latest_new": latest_new})
+
+
+def new_cars_list(request):
+    cars = Car.objects.filter(car_type=Car.CarType.NEW, status=Car.Status.AVAILABLE).select_related("brand").prefetch_related("images")
+
+    brands = Brand.objects.filter(car__car_type=Car.CarType.NEW, car__status=Car.Status.AVAILABLE).distinct()
+    years = Car.objects.filter(car_type=Car.CarType.NEW, status=Car.Status.AVAILABLE).values_list("year", flat=True).order_by("-year").distinct()
+
+    brand_id = request.GET.get("brand")
+    year = request.GET.get("year")
+    price_min = request.GET.get("price_min")
+    price_max = request.GET.get("price_max")
+
+    if brand_id:
+        cars = cars.filter(brand_id=brand_id)
+    if year:
+        cars = cars.filter(year=year)
+    if price_min:
+        cars = cars.filter(price__gte=price_min)
+    if price_max:
+        cars = cars.filter(price__lte=price_max)
+
+    context = {
+        "cars": cars,
+        "brands": brands,
+        "years": years,
+        "selected_brand": brand_id,
+        "selected_year": year,
+        "price_min": price_min,
+        "price_max": price_max,
     }
-    .trust-icon { font-size: 2.5rem; }
-    .car-card { transition: transform .15s, box-shadow .15s; border-radius: 12px; overflow: hidden; }
-    .car-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
-    .car-card img { height: 180px; object-fit: cover; width: 100%; }
-    .car-card .no-image { height: 180px; background: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
-</style>
-{% endblock %}
+    return render(request, "cars/new_cars_list.html", context)
 
-{% block content %}
 
-<!-- Hero -->
-<div class="hero rounded-3 px-4 px-md-5 mb-5">
-    <div class="text-center w-100">
-        <h1 class="display-5 fw-bold mb-3">أفضل السيارات بأسعار تنافسية</h1>
-        <p class="lead text-white-50 mb-4">نقدم لك سيارات جديدة ومستعملة بمواصفات موثقة وشفافية كاملة</p>
-        <div class="d-flex flex-wrap justify-content-center gap-3">
-            <a href="{% url 'cars:new_list' %}" class="btn btn-success btn-lg px-4">
-                🚘 تصفح السيارات الجديدة
-            </a>
-            <a href="{% url 'cars:used_list' %}" class="btn btn-outline-light btn-lg px-4">
-                🔍 تصفح السيارات المستعملة
-            </a>
-        </div>
-    </div>
-</div>
+def used_cars_list(request):
+    cars = Car.objects.filter(car_type=Car.CarType.USED, status=Car.Status.AVAILABLE).select_related("brand").prefetch_related("images")
 
-<!-- Trust Points -->
-<div class="row g-4 text-center mb-5">
-    <div class="col-md-4">
-        <div class="trust-icon">✅</div>
-        <h5 class="fw-bold mt-2">فحص شامل</h5>
-        <p class="text-muted">كل سيارة مستعملة تمر بفحص دقيق قبل العرض</p>
-    </div>
-    <div class="col-md-4">
-        <div class="trust-icon">📋</div>
-        <h5 class="fw-bold mt-2">شفافية تامة</h5>
-        <p class="text-muted">نعرض جميع تفاصيل السيارة بدون إخفاء</p>
-    </div>
-    <div class="col-md-4">
-        <div class="trust-icon">🛡️</div>
-        <h5 class="fw-bold mt-2">ضمان موثوق</h5>
-        <p class="text-muted">نضمن جودة ما نبيع ونقف خلف كل صفقة</p>
-    </div>
-</div>
+    brands = Brand.objects.filter(car__car_type=Car.CarType.USED, car__status=Car.Status.AVAILABLE).distinct()
+    cities = Car.objects.filter(car_type=Car.CarType.USED, status=Car.Status.AVAILABLE).exclude(city="").values_list("city", flat=True).order_by("city").distinct()
+    years = Car.objects.filter(car_type=Car.CarType.USED, status=Car.Status.AVAILABLE).values_list("year", flat=True).order_by("-year").distinct()
 
-<!-- Latest Used Cars -->
-{% if latest_used %}
-<section class="mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4 fw-bold mb-0">أحدث السيارات المستعملة</h2>
-        <a href="{% url 'cars:used_list' %}" class="btn btn-sm btn-outline-dark">عرض الكل</a>
-    </div>
-    <div class="row g-3">
-        {% for car in latest_used %}
-        <div class="col-sm-6 col-lg-4 col-xl-2">
-            <div class="card car-card border-0 shadow-sm h-100">
-                {% with car.images.all as images %}
-                {% if images %}
-                    <img src="{{ images.0.image.url }}" alt="{{ car.brand }} {{ car.model_name }}" loading="lazy">
-                {% else %}
-                    <div class="no-image">🚗</div>
-                {% endif %}
-                {% endwith %}
-                <div class="card-body p-2">
-                    <p class="fw-bold small mb-1">{{ car.brand }} {{ car.model_name }} {{ car.year }}</p>
-                    {% if car.price %}
-                    <p class="text-success fw-bold small mb-1">{{ car.price|floatformat:0 }} ر.س</p>
-                    {% endif %}
-                    {% if car.mileage_km %}
-                    <p class="text-muted" style="font-size:.75rem">{{ car.mileage_km|floatformat:0 }} كم</p>
-                    {% endif %}
-                    <a href="{% url 'cars:used_list' %}" class="btn btn-sm btn-outline-dark w-100 mt-1">التفاصيل</a>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</section>
-{% endif %}
+    brand_id = request.GET.get("brand")
+    year = request.GET.get("year")
+    city = request.GET.get("city")
+    price_min = request.GET.get("price_min")
+    price_max = request.GET.get("price_max")
 
-<!-- Latest New Cars -->
-{% if latest_new %}
-<section class="mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4 fw-bold mb-0">أحدث السيارات الجديدة</h2>
-        <a href="{% url 'cars:new_list' %}" class="btn btn-sm btn-outline-dark">عرض الكل</a>
-    </div>
-    <div class="row g-3">
-        {% for car in latest_new %}
-        <div class="col-sm-6 col-lg-4">
-            <div class="card car-card border-0 shadow-sm h-100">
-                {% with car.images.all as images %}
-                {% if images %}
-                    <img src="{{ images.0.image.url }}" alt="{{ car.brand }} {{ car.model_name }}" loading="lazy">
-                {% else %}
-                    <div class="no-image">🚗</div>
-                {% endif %}
-                {% endwith %}
-                <div class="card-body">
-                    <p class="fw-bold mb-1">{{ car.brand }} {{ car.model_name }} {{ car.year }}</p>
-                    {% if car.trim %}<p class="text-muted small mb-1">{{ car.trim }}</p>{% endif %}
-                    {% if car.price %}
-                    <p class="text-success fw-bold mb-2">{{ car.price|floatformat:0 }} ر.س</p>
-                    {% endif %}
-                    <a href="{% url 'cars:new_list' %}" class="btn btn-sm btn-dark w-100">التفاصيل</a>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</section>
-{% endif %}
+    if brand_id:
+        cars = cars.filter(brand_id=brand_id)
+    if year:
+        cars = cars.filter(year=year)
+    if city:
+        cars = cars.filter(city=city)
+    if price_min:
+        cars = cars.filter(price__gte=price_min)
+    if price_max:
+        cars = cars.filter(price__lte=price_max)
 
-<!-- Contact CTA -->
-<div class="bg-dark text-white rounded-3 p-4 p-md-5 text-center mb-2">
-    <h2 class="fw-bold mb-2">هل تحتاج مساعدة؟</h2>
-    <p class="text-white-50 mb-3">فريقنا جاهز للإجابة على جميع استفساراتك</p>
-    <a href="/contact/" class="btn btn-success btn-lg">تواصل معنا</a>
-</div>
+    context = {
+        "cars": cars,
+        "brands": brands,
+        "cities": cities,
+        "years": years,
+        "selected_brand": brand_id,
+        "selected_year": year,
+        "selected_city": city,
+        "price_min": price_min,
+        "price_max": price_max,
+    }
+    return render(request, "cars/used_cars_list.html", context) 
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from cars.views import home
 
-{% endblock %}
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", home, name="home"),
+    path("cars/", include("cars.urls")),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
