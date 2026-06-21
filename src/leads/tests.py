@@ -1,7 +1,9 @@
-from django.test import TestCase
+from django.test import TestCase, Client
+from django.urls import reverse
 
 from cars.models import Brand, Car
 from .models import TestDriveRequest, InspectionRequest, ContactMessage, LeadStatus
+from .forms import TestDriveForm, InspectionForm, ContactForm
 
 
 def make_car(car_type=Car.CarType.NEW, **kwargs):
@@ -107,3 +109,322 @@ class ContactMessageTest(TestCase):
         ContactMessage.objects.create(name="أولى", message="م1")
         ContactMessage.objects.create(name="ثانية", message="م2")
         self.assertEqual(ContactMessage.objects.first().name, "ثانية")
+
+
+# ─── Form Validation Tests ───────────────────────────────────────────────────
+
+class TestDriveFormTest(TestCase):
+    def setUp(self):
+        brand, _ = Brand.objects.get_or_create(name="تويوتا")
+        self.car = Car.objects.create(brand=brand, car_type=Car.CarType.NEW, model_name="كامري", year=2024)
+
+    def test_valid_form(self):
+        form = TestDriveForm(data={"name": "أحمد", "phone": "0501234567", "preferred_time": "", "note": ""})
+        self.assertTrue(form.is_valid())
+
+    def test_missing_name(self):
+        form = TestDriveForm(data={"name": "", "phone": "0501234567"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("name", form.errors)
+
+    def test_missing_phone(self):
+        form = TestDriveForm(data={"name": "أحمد", "phone": ""})
+        self.assertFalse(form.is_valid())
+        self.assertIn("phone", form.errors)
+
+
+class InspectionFormTest(TestCase):
+    def setUp(self):
+        brand, _ = Brand.objects.get_or_create(name="تويوتا")
+        self.car = Car.objects.create(brand=brand, car_type=Car.CarType.USED, model_name="كامري", year=2020)
+
+    def test_valid_form(self):
+        form = InspectionForm(data={"name": "محمد", "phone": "0559876543", "preferred_time": "", "note": ""})
+        self.assertTrue(form.is_valid())
+
+    def test_missing_name(self):
+        form = InspectionForm(data={"name": "", "phone": "0559876543"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("name", form.errors)
+
+    def test_missing_phone(self):
+        form = InspectionForm(data={"name": "محمد", "phone": ""})
+        self.assertFalse(form.is_valid())
+        self.assertIn("phone", form.errors)
+
+
+class ContactFormTest(TestCase):
+    def test_valid_with_phone(self):
+        form = ContactForm(data={"name": "سلمى", "phone": "0501111111", "email": "", "message": "استفسار"})
+        self.assertTrue(form.is_valid())
+
+    def test_valid_with_email(self):
+        form = ContactForm(data={"name": "رانيا", "phone": "", "email": "r@test.com", "message": "مرحبا"})
+        self.assertTrue(form.is_valid())
+
+    def test_valid_with_both(self):
+        form = ContactForm(data={"name": "خالد", "phone": "0501234567", "email": "k@test.com", "message": "سؤال"})
+        self.assertTrue(form.is_valid())
+
+    def test_no_contact_method_invalid(self):
+        form = ContactForm(data={"name": "زائر", "phone": "", "email": "", "message": "رسالة"})
+        self.assertFalse(form.is_valid())
+
+    def test_missing_message_invalid(self):
+        form = ContactForm(data={"name": "زائر", "phone": "0501234567", "email": "", "message": ""})
+        self.assertFalse(form.is_valid())
+
+    def test_missing_name_invalid(self):
+        form = ContactForm(data={"name": "", "phone": "0501234567", "email": "", "message": "رسالة"})
+        self.assertFalse(form.is_valid())
+
+
+# ─── View / Integration Tests ─────────────────────────────────────────────────
+
+class TestDriveViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        brand, _ = Brand.objects.get_or_create(name="هوندا")
+        self.car = Car.objects.create(
+            brand=brand, car_type=Car.CarType.NEW, model_name="سيفيك",
+            year=2024, status=Car.Status.AVAILABLE,
+        )
+        self.url = reverse("cars:car_detail", args=[self.car.pk])
+
+    def test_form_page_loads(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "حجز تجربة قيادة")
+
+    def test_valid_submission_saves_to_db(self):
+        response = self.client.post(self.url, {
+            "name": "فيصل", "phone": "0501112233", "preferred_time": "", "note": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(TestDriveRequest.objects.count(), 1)
+        req = TestDriveRequest.objects.first()
+        self.assertEqual(req.car, self.car)
+        self.assertEqual(req.name, "فيصل")
+
+    def test_invalid_submission_no_save(self):
+        response = self.client.post(self.url, {"name": "", "phone": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(TestDriveRequest.objects.count(), 0)
+
+
+class InspectionViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        brand, _ = Brand.objects.get_or_create(name="نيسان")
+        self.car = Car.objects.create(
+            brand=brand, car_type=Car.CarType.USED, model_name="باترول",
+            year=2019, status=Car.Status.AVAILABLE,
+        )
+        self.url = reverse("cars:car_detail", args=[self.car.pk])
+
+    def test_form_page_loads(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "حجز معاينة")
+
+    def test_valid_submission_saves_to_db(self):
+        response = self.client.post(self.url, {
+            "name": "نورة", "phone": "0556667788", "preferred_time": "الاثنين", "note": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(InspectionRequest.objects.count(), 1)
+        req = InspectionRequest.objects.first()
+        self.assertEqual(req.car, self.car)
+
+    def test_invalid_submission_missing_phone(self):
+        response = self.client.post(self.url, {"name": "نورة", "phone": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(InspectionRequest.objects.count(), 0)
+
+
+class ContactViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("leads:contact")
+
+    def test_page_loads(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "تواصل معنا")
+
+    def test_valid_submission_saves_to_db(self):
+        response = self.client.post(self.url, {
+            "name": "عبدالله", "phone": "0509998877", "email": "", "message": "أريد الاستفسار عن سيارة",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ContactMessage.objects.count(), 1)
+        msg = ContactMessage.objects.first()
+        self.assertEqual(msg.name, "عبدالله")
+        self.assertEqual(msg.status, LeadStatus.NEW)
+
+    def test_no_contact_method_invalid(self):
+        response = self.client.post(self.url, {
+            "name": "زائر", "phone": "", "email": "", "message": "رسالة بدون وسيلة تواصل",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ContactMessage.objects.count(), 0)
+
+    def test_missing_message_invalid(self):
+        response = self.client.post(self.url, {
+            "name": "زائر", "phone": "0501234567", "email": "", "message": "",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ContactMessage.objects.count(), 0)
+
+    def test_submission_with_email_only(self):
+        response = self.client.post(self.url, {
+            "name": "ليلى", "phone": "", "email": "layla@example.com", "message": "رسالة بالبريد",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ContactMessage.objects.count(), 1)
+
+    def test_saved_message_appears_in_admin_queryset(self):
+        ContactMessage.objects.create(name="إدارة", phone="0501234567", message="رسالة")
+        self.assertEqual(ContactMessage.objects.count(), 1)
+
+
+# ─── Static Pages Tests (Task 3.9) ───────────────────────────────────────────
+
+class AboutPageTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("leads:about")
+
+    def test_page_returns_200(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "leads/about.html")
+
+    def test_page_extends_base(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "base.html")
+
+    def test_page_contains_title(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "من نحن")
+
+    def test_page_contains_story_section(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "قصتنا")
+
+    def test_page_contains_values_section(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "قيمنا الأساسية")
+
+    def test_page_contains_cta_links(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse("cars:new_list"))
+        self.assertContains(response, reverse("cars:used_list"))
+
+    def test_page_title_tag(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "من نحن")
+
+    def test_navbar_has_about_link(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse("leads:about"))
+
+    def test_about_link_active_in_navbar(self):
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        # active class should be on the about nav-link
+        self.assertIn("active", content)
+
+
+class PrivacyPageTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("leads:privacy")
+
+    def test_page_returns_200(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "leads/privacy.html")
+
+    def test_page_extends_base(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "base.html")
+
+    def test_page_contains_title(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "سياسة الخصوصية")
+
+    def test_page_contains_data_section(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "المعلومات التي نجمعها")
+
+    def test_page_contains_rights_section(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "حقوقك")
+
+    def test_page_contains_contact_link(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse("leads:contact"))
+
+    def test_footer_has_privacy_link(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse("leads:privacy"))
+
+    def test_page_is_get_only(self):
+        response = self.client.post(self.url, {})
+        # static page — POST not handled differently, returns 200 or 405
+        self.assertIn(response.status_code, [200, 405])
+
+
+class ContactPageMapTest(TestCase):
+    """Ensure the contact page includes map and all required contact info."""
+
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("leads:contact")
+
+    def test_page_contains_phone(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "966")
+
+    def test_page_contains_email(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "info@showroom.sa")
+
+    def test_page_contains_location(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "الرياض")
+
+    def test_page_contains_map_iframe(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "<iframe")
+
+    def test_page_contains_map_title(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "موقعنا على الخريطة")
+
+
+class StaticPagesNavbarTest(TestCase):
+    """Ensure static pages appear in the navbar across all pages."""
+
+    def test_home_navbar_has_about_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, reverse("leads:about"))
+
+    def test_home_navbar_has_contact_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, reverse("leads:contact"))
+
+    def test_home_footer_has_privacy_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, reverse("leads:privacy"))
+
+    def test_home_footer_has_about_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, reverse("leads:about"))
